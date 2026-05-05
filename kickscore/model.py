@@ -9,6 +9,7 @@ from .observation import (
     LogitTieObservation,
     LogitWinObservation,
     Observation,
+    PlackettLuceObservation,
     PoissonObservation,
     ProbitTieObservation,
     ProbitWinObservation,
@@ -193,6 +194,67 @@ class TernaryModel(Model):
         prob1 = self._win_obs.probability(elems, t, margin)
         prob2 = self._tie_obs.probability(elems, t, margin)
         return (prob1, prob2, 1 - prob1 - prob2)
+
+
+class ChoiceModel(Model):
+    def __init__(self, num_samples: int = 128, random_state: int | None = 0):
+        super().__init__()
+        self.num_samples = num_samples
+        self.random_state = random_state
+
+    def observe(self, choices: list[str] | tuple[str, ...], winner: str, t: float) -> None:
+        if t < self.last_t:
+            raise ValueError("observations must be added in chronological order")
+        if winner not in choices:
+            raise ValueError("winner must be one of the choices")
+        choices = list(choices)
+        if len(choices) < 2:
+            raise ValueError("need at least two choices")
+        if len(set(choices)) != len(choices):
+            raise ValueError("choices must not contain duplicates")
+        elems = self.process_items(choices, sign=+1)
+        seed = None if self.random_state is None else self.random_state + len(self.observations)
+        obs = PlackettLuceObservation(
+            elems,
+            winner=choices.index(winner),
+            t=t,
+            num_samples=self.num_samples,
+            random_state=seed,
+        )
+        self.observations.append(obs)
+        self.last_t = t
+
+    def fit(
+        self,
+        method: Literal["ep", "kl"] = "kl",
+        lr: float = 0.3,
+        tol: float = 1e-3,
+        max_iter: int = 100,
+        verbose: bool = False,
+    ) -> bool:
+        if method != "kl":
+            raise ValueError("ChoiceModel only supports method='kl'")
+        return super().fit(method=method, lr=lr, tol=tol, max_iter=max_iter, verbose=verbose)
+
+    def probabilities(
+        self,
+        choices: list[str] | tuple[str, ...],
+        t: float,
+        integrate: bool = True,
+    ) -> tuple[float, ...]:
+        choices = list(choices)
+        if len(choices) < 2:
+            raise ValueError("need at least two choices")
+        if len(set(choices)) != len(choices):
+            raise ValueError("choices must not contain duplicates")
+        elems = self.process_items(choices, sign=+1)
+        return PlackettLuceObservation.probability(
+            elems,
+            t=t,
+            num_samples=self.num_samples,
+            random_state=self.random_state,
+            integrate=integrate,
+        )
 
 
 class DifferenceModel(Model):

@@ -35,7 +35,7 @@ class Observation(metaclass=abc.ABCMeta):
 
     @staticmethod
     @abc.abstractmethod
-    def probability(*args: Any, **kwargs: Any) -> float:
+    def probability(*args: Any, **kwargs: Any) -> Any:
         """Compute the probability of the outcome described by `elems`."""
 
     def ep_update(self, lr: float = 1.0) -> float:

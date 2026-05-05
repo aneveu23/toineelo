@@ -20,6 +20,25 @@ To get started, you might want to explore one of these notebooks:
 - [Basic example illustrating the API](examples/kickscore-basics.ipynb) ([interactive version](https://colab.research.google.com/github/lucasmaystre/kickscore/blob/master/examples/kickscore-basics.ipynb))
 - [Visualizing the history of the NBA](examples/nba-history.ipynb) ([interactive version](https://colab.research.google.com/github/lucasmaystre/kickscore/blob/master/examples/nba-history.ipynb))
 
+## Choice-set observations
+
+For top-1 Plackett-Luce / conditional-logit data, use `ChoiceModel`. Each observation
+contains a choice set and the selected winner; inference uses the KL/CVI updates.
+
+```python
+import kickscore as ks
+
+model = ks.ChoiceModel(num_samples=128, random_state=0)
+kernel = ks.kernel.Matern52(var=1.0, lscale=10.0)
+
+for competitor in ["A", "B", "C"]:
+    model.add_item(competitor, kernel=kernel)
+
+model.observe(choices=["A", "B", "C"], winner="A", t=1.0)
+model.fit()  # ChoiceModel defaults to method="kl".
+probs = model.probabilities(["A", "B", "C"], t=2.0)
+```
+
 ## References
 
 - Lucas Maystre, Victor Kristof, Matthias Grossglauser, [Pairwise Comparisons with Flexible Time-Dynamics](https://arxiv.org/abs/1903.07746), KDD 2019

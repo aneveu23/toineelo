@@ -1,3 +1,4 @@
+from .choice import PlackettLuceObservation
 from .gaussian import GaussianObservation
 from .observation import Observation
 from .ordinal import (
@@ -15,6 +16,7 @@ __all__ = [
     "LogitWinObservation",
     "LogitTieObservation",
     "GaussianObservation",
+    "PlackettLuceObservation",
     "PoissonObservation",
     "SkellamObservation",
 ]
