@@ -19,7 +19,7 @@ def _logsumexp(xs: NDArray[np.float64], axis: int | None = None) -> NDArray[np.f
 def _softmax(xs: NDArray[np.float64]) -> NDArray[np.float64]:
     shifted = xs - np.max(xs, axis=1, keepdims=True)
     exp_shifted = np.exp(shifted)
-    return exp_shifted / np.sum(exp_shifted, ahttps://github.com/aneveu23/toineelo/pull/2/conflict?name=kickscore%252Fmodel.py&ancestor_oid=ab7531c9e2e68401464e2659cf2c2d6d59c2fb2d&base_oid=380b100e77d5168e932593bba7c6430a3989fa15&head_oid=a5f1669c8993b8a6999d9ff5a6f44d86293cc826xis=1, keepdims=True)
+    return exp_shifted / np.sum(exp_shifted, axis=1, keepdims=True)
 
 
 def _normal_draws(
