@@ -22,6 +22,7 @@ from .item import (
 )
 from .model import (
     BinaryModel,
+    ChoiceModel,
     CountDiffModel,
     CountModel,
     DifferenceModel,
@@ -31,6 +32,7 @@ from .model import (
 __all__ = [
     "BinaryModel",
     "TernaryModel",
+    "ChoiceModel",
     "DifferenceModel",
     "CountModel",
     "CountDiffModel",
