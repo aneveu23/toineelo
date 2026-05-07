@@ -23,12 +23,14 @@ To get started, you might want to explore one of these notebooks:
 ## Choice-set observations
 
 For top-1 Plackett-Luce / conditional-logit data, use `ChoiceModel`. Each observation
-contains a choice set and the selected winner; inference uses the KL/CVI updates.
+contains a choice set and the selected winner; inference uses the KL/CVI updates. The
+`temperature` hyperparameter scales the softmax logits (lower values make choices sharper,
+higher values make them flatter).
 
 ```python
 import kickscore as ks
 
-model = ks.ChoiceModel(num_samples=128, random_state=0)
+model = ks.ChoiceModel(num_samples=128, random_state=0, temperature=1.0)
 kernel = ks.kernel.Matern52(var=1.0, lscale=10.0)
 
 for competitor in ["A", "B", "C"]:

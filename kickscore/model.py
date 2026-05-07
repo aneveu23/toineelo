@@ -197,10 +197,18 @@ class TernaryModel(Model):
 
 
 class ChoiceModel(Model):
-    def __init__(self, num_samples: int = 128, random_state: int | None = 0):
+    def __init__(
+        self,
+        num_samples: int = 128,
+        random_state: int | None = 0,
+        temperature: float = 1.0,
+    ):
+        if temperature <= 0.0:
+            raise ValueError("temperature must be positive")
         super().__init__()
         self.num_samples = num_samples
         self.random_state = random_state
+        self.temperature = temperature
 
     def observe(self, choices: list[str] | tuple[str, ...], winner: str, t: float) -> None:
         if t < self.last_t:
@@ -220,6 +228,7 @@ class ChoiceModel(Model):
             t=t,
             num_samples=self.num_samples,
             random_state=seed,
+            temperature=self.temperature,
         )
         self.observations.append(obs)
         self.last_t = t
@@ -254,6 +263,7 @@ class ChoiceModel(Model):
             num_samples=self.num_samples,
             random_state=self.random_state,
             integrate=integrate,
+            temperature=self.temperature,
         )
 
 
