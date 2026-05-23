@@ -86,7 +86,17 @@ class PlackettLuceObservation(Observation):
                 stored_alt.append((item, float(coeff), idx))
             self._alternatives.append(stored_alt)
 
-    def kl_update(self, lr: float = 0.3) -> float:
+
+    def match_moments(self, mean_cav: float, var_cav: float) -> tuple[float, float, float]:
+        raise NotImplementedError("Plackett-Luce observations only support method='kl'")
+        
+    def cvi_expectations(self, mean: float, var: float) -> tuple[float, float, float]:
+        raise NotImplementedError("use kl_update() for vector-valued Plackett-Luce updates")
+
+    def ep_update(self, lr: float = 1.0) -> float:
+        raise NotImplementedError("Plackett-Luce observations only support method='kl'")     
+        
+    def kl_update(self, lr: float = 1.0) -> float:
         mean = np.zeros(self._M)
         var = np.zeros(self._M)
 
