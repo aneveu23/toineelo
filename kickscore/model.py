@@ -209,27 +209,79 @@ class ChoiceModel(Model):
         self.num_samples = num_samples
         self.random_state = random_state
         self.temperature = temperature
-
-    def observe(self, choices: list[str] | tuple[str, ...], winner: str, t: float) -> None:
+        
+    def _process_choice_alternatives(
+        self,
+        choices: list[str] | tuple[str, ...],
+        t: float,
+        extra_terms=None,
+    ):
+        """
+        Returns alternatives as:
+            [
+              [(player_item, 1.0, game_t), (age_curve_item, 1.0, age_days)],
+              ...
+            ]
+    
+        extra_terms must be aligned with choices:
+            extra_terms[i] = [(item_name, coeff, term_t), ...]
+        """
+        choices = list(choices)
+    
+        if extra_terms is None:
+            extra_terms = [[] for _ in choices]
+    
+        if len(extra_terms) != len(choices):
+            raise ValueError("extra_terms must have same length as choices")
+    
+        alternatives = []
+    
+        for choice, terms in zip(choices, extra_terms):
+            alt = [(self.item[choice], 1.0, float(t))]
+    
+            for name, coeff, term_t in terms:
+                alt.append((self.item[name], float(coeff), float(term_t)))
+    
+            alternatives.append(alt)
+    
+        return alternatives
+    
+    def observe(
+        self,
+        choices: list[str] | tuple[str, ...],
+        winner: str,
+        t: float,
+        extra_terms=None,
+    ) -> None:
         if t < self.last_t:
             raise ValueError("observations must be added in chronological order")
         if winner not in choices:
             raise ValueError("winner must be one of the choices")
+    
         choices = list(choices)
+    
         if len(choices) < 2:
             raise ValueError("need at least two choices")
         if len(set(choices)) != len(choices):
             raise ValueError("choices must not contain duplicates")
-        elems = self.process_items(choices, sign=+1)
+    
+        alternatives = self._process_choice_alternatives(
+            choices=choices,
+            t=t,
+            extra_terms=extra_terms,
+        )
+    
         seed = None if self.random_state is None else self.random_state + len(self.observations)
+    
         obs = PlackettLuceObservation(
-            elems,
+            alternatives,
             winner=choices.index(winner),
             t=t,
             num_samples=self.num_samples,
             random_state=seed,
             temperature=self.temperature,
         )
+    
         self.observations.append(obs)
         self.last_t = t
 
@@ -250,15 +302,23 @@ class ChoiceModel(Model):
         choices: list[str] | tuple[str, ...],
         t: float,
         integrate: bool = True,
+        extra_terms=None,
     ) -> tuple[float, ...]:
         choices = list(choices)
+    
         if len(choices) < 2:
             raise ValueError("need at least two choices")
         if len(set(choices)) != len(choices):
             raise ValueError("choices must not contain duplicates")
-        elems = self.process_items(choices, sign=+1)
+    
+        alternatives = self._process_choice_alternatives(
+            choices=choices,
+            t=t,
+            extra_terms=extra_terms,
+        )
+    
         return PlackettLuceObservation.probability(
-            elems,
+            alternatives,
             t=t,
             num_samples=self.num_samples,
             random_state=self.random_state,
