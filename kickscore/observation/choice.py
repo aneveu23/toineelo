@@ -54,16 +54,9 @@ def _choice_expectations(
 
 
 class PlackettLuceObservation(Observation):
-    """Top-1 Plackett-Luce / conditional-logit observation over a choice set.
-
-    The KL/CVI update uses a diagonal Gaussian pseudo-observation per alternative.
-    Expectations over posterior uncertainty are approximated with fixed antithetic
-    Monte Carlo draws so repeated variational iterations are deterministic.
-    """
-
     def __init__(
         self,
-        elems: Sequence[tuple[Item, float]],
+        alternatives,
         winner: int,
         t: float,
         num_samples: int = 128,
@@ -72,47 +65,48 @@ class PlackettLuceObservation(Observation):
     ):
         if temperature <= 0.0:
             raise ValueError("temperature must be positive")
-        if len(elems) < 2:
+        if len(alternatives) < 2:
             raise ValueError("need at least two alternatives per choice observation")
-        if winner < 0 or winner >= len(elems):
+        if winner < 0 or winner >= len(alternatives):
             raise ValueError("winner index is outside of the choice set")
-        super().__init__(elems, t)
+
+        self._M = len(alternatives)
         self._winner = winner
         self._temperature = temperature
         self._eps = _normal_draws(num_samples, self._M, random_state)
+        self.t = t
+        self._exp_ll = 0
 
-    def match_moments(self, mean_cav: float, var_cav: float) -> tuple[float, float, float]:
-        raise NotImplementedError("Plackett-Luce observations only support method='kl'")
+        self._alternatives = []
 
-    def cvi_expectations(self, mean: float, var: float) -> tuple[float, float, float]:
-        raise NotImplementedError("use kl_update() for vector-valued Plackett-Luce updates")
-
-    def ep_update(self, lr: float = 1.0) -> float:
-        raise NotImplementedError("Plackett-Luce observations only support method='kl'")
+        for alt in alternatives:
+            stored_alt = []
+            for item, coeff, term_t in alt:
+                idx = item.fitter.add_sample(float(term_t))
+                stored_alt.append((item, float(coeff), idx))
+            self._alternatives.append(stored_alt)
 
     def kl_update(self, lr: float = 0.3) -> float:
         mean = np.zeros(self._M)
         var = np.zeros(self._M)
-        for i in range(self._M):
-            item = self._items[i]
-            idx = self._indices[i]
-            coeff = self._coeffs[i]
-            mean[i] = coeff * item.fitter.ms[idx]
-            var[i] = coeff * coeff * item.fitter.vs[idx]
+
+        for a, alt in enumerate(self._alternatives):
+            for item, coeff, idx in alt:
+                mean[a] += coeff * item.fitter.ms[idx]
+                var[a] += coeff * coeff * item.fitter.vs[idx]
 
         exp_ll, grad, tau_utility = _choice_expectations(
             mean, var, self._winner, self._eps, self._temperature
         )
 
-        for i in range(self._M):
-            item = self._items[i]
-            idx = self._indices[i]
-            coeff = self._coeffs[i]
-            item_mean = item.fitter.ms[idx]
-            x = coeff * coeff * tau_utility[i]
-            n = coeff * grad[i] + x * item_mean
-            item.fitter.xs[idx] = (1.0 - lr) * item.fitter.xs[idx] + lr * x
-            item.fitter.ns[idx] = (1.0 - lr) * item.fitter.ns[idx] + lr * n
+        for a, alt in enumerate(self._alternatives):
+            for item, coeff, idx in alt:
+                item_mean = item.fitter.ms[idx]
+                x = coeff * coeff * tau_utility[a]
+                n = coeff * grad[a] + x * item_mean
+
+                item.fitter.xs[idx] = (1.0 - lr) * item.fitter.xs[idx] + lr * x
+                item.fitter.ns[idx] = (1.0 - lr) * item.fitter.ns[idx] + lr * n
 
         diff = abs(self._exp_ll - exp_ll)
         self._exp_ll = exp_ll
@@ -120,7 +114,7 @@ class PlackettLuceObservation(Observation):
 
     @staticmethod
     def probability(
-        elems: Sequence[tuple[Item, float]],
+        alternatives,
         t: float,
         num_samples: int = 128,
         random_state: int | None = None,
@@ -129,17 +123,21 @@ class PlackettLuceObservation(Observation):
     ) -> tuple[float, ...]:
         if temperature <= 0.0:
             raise ValueError("temperature must be positive")
-        mean = np.zeros(len(elems))
-        var = np.zeros(len(elems))
-        ts = np.array([t])
-        for i, (item, coeff) in enumerate(elems):
-            ms, vs = item.predict(ts)
-            mean[i] = coeff * ms[0]
-            var[i] = coeff * coeff * vs[0]
+
+        mean = np.zeros(len(alternatives))
+        var = np.zeros(len(alternatives))
+
+        for a, alt in enumerate(alternatives):
+            for item, coeff, term_t in alt:
+                ms, vs = item.predict(np.array([float(term_t)]))
+                mean[a] += coeff * ms[0]
+                var[a] += coeff * coeff * vs[0]
+
         if integrate:
-            eps = _normal_draws(num_samples, len(elems), random_state)
+            eps = _normal_draws(num_samples, len(alternatives), random_state)
             z = mean[None, :] + np.sqrt(np.maximum(var, 0.0))[None, :] * eps
             probs = np.mean(_softmax(z / temperature), axis=0)
         else:
             probs = _softmax(mean[None, :] / temperature)[0]
+
         return tuple(float(p) for p in probs)
