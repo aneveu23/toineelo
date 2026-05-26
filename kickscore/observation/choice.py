@@ -96,7 +96,7 @@ class PlackettLuceObservation(Observation):
     def ep_update(self, lr: float = 0.3) -> float:
         raise NotImplementedError("Plackett-Luce observations only support method='kl'")     
         
-    def kl_update(self, lr: float = 0.8) -> float:
+    def kl_update(self, lr: float = 1.0) -> float:
         mean = np.zeros(self._M)
         var = np.zeros(self._M)
 
