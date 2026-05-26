@@ -288,7 +288,7 @@ class ChoiceModel(Model):
     def fit(
         self,
         method: Literal["ep", "kl"] = "kl",
-        lr: float = 1.0,
+        lr: float = 0.3,
         tol: float = 1e-3,
         max_iter: int = 100,
         verbose: bool = False,
