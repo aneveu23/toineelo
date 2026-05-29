@@ -57,7 +57,15 @@ class Kernel(metaclass=abc.ABCMeta):
         """
         F = self.feedback
         return sp.linalg.expm(F * (t2 - t1))
-
+        
+    def mean(self, ts: NDArray) -> NDArray:
+        ts = np.asarray(ts, dtype=float)
+        h = self.measurement_vector
+        return np.array(
+            [h.dot(self.state_mean(float(t))) for t in ts],
+            dtype=float,
+        )
+        
     def noise_cov(self, t1: float, t2: float) -> NDArray:
         r"""Noise covariance matrix :math:`\mathbf{Q}` for a given time interval.
 
