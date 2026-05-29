@@ -163,8 +163,8 @@ class RecursiveFitter(Fitter):
         self.ts = np.concatenate((self.ts, ts_new))
         self.ms = np.concatenate((self.ms, prior_ms))
         self.vs = np.concatenate((self.vs, self.kernel.k_diag(ts_new)))
-        self.ns = np.concatenate((self.ns, zeros))
-        self.xs = np.concatenate((self.xs, zeros))
+        self.ns = np.concatenate((self.ns, np.zeros(n_new)))
+        self.xs = np.concatenate((self.xs, np.zeros(n_new)))
 
         self.ts_new = list()
 
