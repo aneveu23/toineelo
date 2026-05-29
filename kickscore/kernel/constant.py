@@ -10,8 +10,9 @@ VEC_ONE = np.array([1.0])
 
 
 class Constant(Kernel):
-    def __init__(self, var: float):
+    def __init__(self, var: float, mean: float = 0.0):
         self.var = var
+        self.mean = mean
 
     def k_mat(self, ts1: NDArray, ts2: NDArray | None = None) -> NDArray:
         n = len(ts1)
@@ -32,7 +33,7 @@ class Constant(Kernel):
         return MAT_ZERO
 
     def state_mean(self, t: float) -> NDArray:
-        return VEC_ZERO
+        return np.array([self.mean], dtype=float)
 
     def state_cov(self, t: float) -> NDArray:
         return self.var * MAT_ONE
