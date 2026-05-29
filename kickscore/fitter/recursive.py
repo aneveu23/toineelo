@@ -158,10 +158,10 @@ class RecursiveFitter(Fitter):
             return
 
         ts_new = np.asarray(self.ts_new, dtype=float)
-        zeros = np.zeros(n_new)
-
+        prior_ms = self.kernel.mean(ts_new)
+        
         self.ts = np.concatenate((self.ts, ts_new))
-        self.ms = np.concatenate((self.ms, zeros))
+        self.ms = np.concatenate((self.ms, prior_ms))
         self.vs = np.concatenate((self.vs, self.kernel.k_diag(ts_new)))
         self.ns = np.concatenate((self.ns, zeros))
         self.xs = np.concatenate((self.xs, zeros))
@@ -286,7 +286,7 @@ class RecursiveFitter(Fitter):
         ts = np.asarray(ts, dtype=float)
 
         if len(self.ts) == 0:
-            return (np.zeros_like(ts), self.kernel.k_diag(ts))
+            return (self.kernel.mean(ts), self.kernel.k_diag(ts))
 
         ts_train = self._ts_sorted
         ms = np.zeros(len(ts))
